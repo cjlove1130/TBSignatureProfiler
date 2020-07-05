@@ -4,8 +4,7 @@ author:
 - name: Aubrey Odom
   affiliation: 
   - Program in Bioinformatics, Boston University, Boston, MA
-  - Department of Statistics, Brigham Young University, Provo, UT
-  email: aubreyodom@byu.edu
+  email: aodom@bu.edu
 - name: W. Evan Johnson
   affiliation:
   - The Section of Computational Biomedicine, Boston University School of Medicine, Boston, MA
@@ -29,10 +28,12 @@ We aim to provide the scientific community with a resource to access these aggre
  
 # Installation
 
-In order to install the TBSignatureProfiler, run the following code:
+In order to install the TBSignatureProfiler from Bioconductor, run the following code:
 
 ```{r load profiler, eval = FALSE}
-devtools::install_github("aubreyodom/TBSignatureProfiler")
+if (!requireNamespace("BiocManager", quietly=TRUE))
+  install.packages("BiocManager")
+BiocManager::install("TBSignatureProfiler")
 ```
                                                                       
 # Compatibility with SummarizedExperiment objects
@@ -48,7 +49,9 @@ BiocManager::install("SummarizedExperiment")
 ```
 
 
-# A Tutorial for the TBSignature Profiler
+# A Tutorial for the TBSignatureProfiler
+
+## Load packages
 
 ```{r setup}
 suppressPackageStartupMessages({
@@ -91,33 +94,36 @@ With the `runTBSigProfiler` function, we are able to score these signatures with
 
 Here, we evaluate all signatures included in the package with ssGSEA. Paraphrasing from the [ssGSEA documentation](http://software.broadinstitute.org/cancer/software/genepattern/modules/docs/ssGSEAProjection/4), for each pairing of one of the 31 samples and its gene set, ssGSEA calculates a separate enrichment score independent of the phenotypic labeling (in this case, whether a sample has HIV/TB, or HIV only). The single sample's gene expression profile is then transformed to a gene set enrichment profile. A score from the set profile represents the activity level of the biological process in which the gene set's members are coordinately up- or down-regulated.  
 
-```{r run profiler, message = FALSE, results = 'hide'}
-
-## List all 34 signatures in the profiler
+```{r run data}
+## List all signatures in the profiler
 data("TBsignatures")
 names(TBsignatures)
 
 ## We can use all of these signatures for further analysis
 siglist_hivtb <- names(TBsignatures)
-
-## Run the TBSignatureProfiler to score the signatures in the data
-ssgsea_result <- runTBsigProfiler(input = hivtb_data, 
-                               useAssay = "log_cpm",
-                               signatures = TBsignatures,
-                               algorithm = "ssGSEA",
-                               combineSigAndAlgorithm = TRUE,
-                               parallel.sz = 1)
 ```
+
+```{r run profiler}
+## Run the TBSignatureProfiler to score the signatures in the data
+out <- capture.output(ssgsea_result <- runTBsigProfiler(input = hivtb_data,
+                                                 useAssay = "log_cpm",
+                                                 signatures = TBsignatures,
+                                                 algorithm = "ssGSEA",
+                                                 combineSigAndAlgorithm = TRUE,
+                                                 parallel.sz = 1))
+```
+
 
 When a `SummarizedExperiment` is the format of the input data for `runTBsigprofiler`,  the returned object is also of the `SummarizedExperiment`. The scores will be returned as a part of the colData. 
 
-Below, we subset the data to compare the enrichment scores for the Zak_Risk_16, Anderson_42, and Anderson_OD_51 signatures. 
+Below, we subset the data to compare the enrichment scores for the Anderson_42, Anderson_OD_51, and Berry_393 signatures. 
 
 Signature Scores
 ```{r show scores, message = FALSE}
 ## New colData entries from the Profiler
-ssgsea_print_results <- as.data.frame(colData(ssgsea_result))[,2:5]
-ssgsea_print_results[,2:4] <- round(ssgsea_print_results[,2:4], 4)
+sigs <- c("Anderson_42", "Anderson_OD_51", "Berry_393")
+ssgsea_print_results <- as.data.frame(colData(ssgsea_result))[, c("Disease", sigs)]
+ssgsea_print_results[,2:4] <- round(ssgsea_print_results[, 2:4], 4)
 
 DT::datatable(ssgsea_print_results)
 ```
@@ -165,10 +171,10 @@ signatureBoxplot(inputData = ssgsea_result,
 
 ### Boxplots of Scores, Individual Signatures {.tabset}
  
-If only one boxplot of a signature is desired, then that signature alone should be specified in `signatureColNames`. Otherwise, an array of plots for all signatures will be produced.
+If only one boxplot of a signature is desired, then that signature alone should be specified in `signatureColNames`. Otherwise, an array of plots for all signatures will be produced. Here we use the signatures Anderson_42, Anderson_OD_51, and Berry_393.
 
 ```{r Boxplots indiv, results = "asis", message = FALSE}
-for (i in names(TBsignatures)){
+for (i in sigs){
 
   cat("####", i, "\n")
 
@@ -183,15 +189,14 @@ for (i in names(TBsignatures)){
 ### Heatmaps for Individual Signatures {.tabset}
 
 
-The `signatureGeneHeatmap` function produces heatmaps that highlight a single selected signature. The resulting plots feature samples on the columns, and the genes in the signature on the rows. The annotation rows at the top are related to both the disease phenotype and to the signature score itself.  The gradient of the heatmap is created using the gene expression values in the assay specified by the `useAssay` parameter. Here, we observe how the log(CPM) values for specific genes relate to the signature score for each sample.
-
+The `signatureGeneHeatmap` function produces heatmaps that highlight a single selected signature. The resulting plots feature samples on the columns, and the genes in the signature on the rows. The annotation rows at the top are related to both the disease phenotype and to the signature score itself.  The gradient of the heatmap is created using the gene expression values in the assay specified by the `useAssay` parameter. Here, we observe how the log(CPM) values for specific genes relate to the signature score for each sample using the signatures Anderson_42, Anderson_OD_51, and Berry_393.
 ```{r Heatmaps indiv, results = "asis", message = FALSE, fig.height = 11}
-for (i in names(TBsignatures)){
+for (i in sigs){
 
   cat("####", i, "\n")
 
   signatureGeneHeatmap(inputData = ssgsea_result, useAssay = "log_cpm",
-                       TBsignatures[[i]],
+                       TBsignatures[sigs][[i]],
                        name = i, signatureColNames = i, 
                        annotationColNames = c("Disease"),
                        showColumnNames = TRUE,
@@ -215,7 +220,7 @@ compareAlgs(hivtb_data, annotationColName = "Disease",
             algorithm = c("GSVA", "ssGSEA",
                           "singscore", "PLAGE", "Zscore"),
             useAssay = "log_counts",
-            signatures = TBsignatures[1],
+            signatures = TBsignatures["Anderson_42"],
             choose_color = col.me, show.pb = FALSE,
             parallel.sz = 1)
 
@@ -225,7 +230,7 @@ compareAlgs(hivtb_data, annotationColName = "Disease",
             algorithm = c("GSVA", "ssGSEA",
                           "singscore", "PLAGE", "Zscore"),
             useAssay = "log_counts",
-            signatures = TBsignatures[1],
+            signatures = TBsignatures["Anderson_42"],
             choose_color = col.me, show.pb = FALSE,
             parallel.sz = 1, output = "boxplot")
 ```
@@ -270,7 +275,7 @@ signatureROCplot_CI(inputData = ssgsea_result,
 ### Separate ROC plots, 95% CI bands {.tabset}
  
 ```{r ROC indiv, results = 'asis', message = FALSE}
-for (i in names(TBsignatures)){
+for (i in sigs){
   
   cat("####", i, "\n")
   
@@ -287,7 +292,7 @@ for (i in names(TBsignatures)){
 
 Another method of signature evaluation featured in the TBSignatureProfiler package is available with the `SignatureQuantitative` function. 
 
-During the training process, we bootstrap the samples, cross-validate the logistic regression prediction of the TB?HIV status of each sample, and calculate the validation set AUCs from each cross-validation iteration. In theory, if a signature is a useful predictor of status, it should have a higher average AUC from these logistic regression bootstraps.
+During the training process, we bootstrap the samples, cross-validate the logistic regression prediction of the TB HIV status of each sample, and calculate the validation set AUCs from each cross-validation iteration. In theory, if a signature is a useful predictor of status, it should have a higher average AUC from these logistic regression bootstraps.
 
 ```{r sigeval, message = FALSE}
 ### Make an additional binary indicator for signature evaluation
@@ -298,8 +303,8 @@ hivtb_norm <- deseq2_norm_rle(assay(hivtb_data, "counts"))
 
 quantitative.result <- SignatureQuantitative(hivtb_norm,
                        targetVec.num = colData(hivtb_data)$BinaryTB,
-                       signature.list = TBsignatures,
-                       signature.name.vec = names(TBsignatures),
+                       signature.list = TBsignatures[sigs],
+                       signature.name.vec = sigs,
                        num.boot = 3,
                        pb.show = FALSE)
 ```
@@ -308,8 +313,8 @@ We also create a boxplot of AUC for each signature, which provides a clear compa
 
 ```{r sigeval plot, message = FALSE}
 plotQuantitative(hivtb_norm, targetVec.num = colData(hivtb_data)$BinaryTB,
-                       signature.list = TBsignatures,
-                       signature.name.vec = names(TBsignatures),
+                       signature.list = TBsignatures[sigs],
+                       signature.name.vec = sigs,
                        num.boot = 3, pb.show = FALSE, rotateLabels = TRUE)
 ```
 
@@ -317,24 +322,24 @@ plotQuantitative(hivtb_norm, targetVec.num = colData(hivtb_data)$BinaryTB,
 ### Table of AUC Results
 ```{r AUC sigeval}
 DT::datatable(round(quantitative.result$df.auc.ci, 4),
-              options = list(scrollX = T, pageLength = 10), 
-              rownames = F)
+              options = list(scrollX = TRUE, pageLength = 10), 
+              rownames = FALSE)
 ```
 
 
 ### Table of Sensitivity Results
 ```{r sens sigeval}
 DT::datatable(round(quantitative.result$df.sensitivity.ci, 4),
-              options = list(scrollX = T, pageLength = 10), 
-              rownames = F)
+              options = list(scrollX = TRUE, pageLength = 10), 
+              rownames = FALSE)
 ```
 
 
 ### Table of Specificity Results
 ```{r spec sigeval}
 DT::datatable(round(quantitative.result$df.specificity.ci, 4),
-              options = list(scrollX = T, pageLength = 10), 
-              rownames = F)
+              options = list(scrollX = TRUE, pageLength = 10), 
+              rownames = FALSE)
 ```
 
 ```{r session info}

@@ -1,3 +1,5 @@
+globalVariables(c("BS_AUC", "FPR", "LowerTPR", "Signatures",
+                  "TBsignatures", "TPR", "UpperTPR", "sigAnnotData"))
 .myenv <- new.env(parent = emptyenv())
 
 #' Run TB gene signature profiling.
@@ -58,9 +60,9 @@
 #' object will have signatures on the rows and samples on the columns.
 #'
 #' @references
-#' Barbie,  D.A., Tamayo, P., Boehm, J.S., Kim, S.Y., Moody,	 S.E., Dunn, I.F., Schinzel, A.C.,
-#' Sandy, P., Meylan, E., Scholl, C., et al. (2009).  Systematic RNA interference reveals
-#' that oncogenic	KRAS-driven cancers require TBK1. \emph{Nature} \strong{462}, 108-112.
+#' Barbie, D.A., Tamayo, P., Boehm, J.S., Kim, S.Y., Moody, S.E., Dunn, I.F., Schinzel, A.C.,
+#' Sandy, P., Meylan, E., Scholl, C., et al. (2009). Systematic RNA interference reveals
+#' that oncogenic KRAS-driven cancers require TBK1. \emph{Nature} \strong{462}, 108-112.
 #' doi: \href{https://doi.org/10.1038/nature08460}{10.1038/nature08460}.
 #'
 #' Foroutan, M. et al. (2018). Single sample scoring of molecular phenotypes.
@@ -98,10 +100,10 @@
 #'  # expression & five samples with high expression of the signatures genes.
 #' df_testdata <- as.data.frame(rbind(matrix(c(rnorm(80), rnorm(80) + 5), 16, 10,
 #'                              dimnames = list(TBsignatures$Zak_RISK_16,
-#'                              paste0("sample", 1:10))),
+#'                              paste0("sample", seq_len(10)))),
 #'                       matrix(rnorm(1000), 100, 10,
-#'                              dimnames = list(paste0("gene", 1:100),
-#'                              paste0("sample", 1:10)))))
+#'                              dimnames = list(paste0("gene", seq_len(100)),
+#'                              paste0("sample", seq_len(10))))))
 #' res <- runTBsigProfiler(input = df_testdata,
 #'                         signatures = TBsignatures["Zak_RISK_16"],
 #'                         algorithm = c("GSVA", "ssGSEA"),
@@ -147,16 +149,15 @@ runTBsigProfiler <- function(input, useAssay = NULL,
     }
     runindata <- SummarizedExperiment::assay(input, useAssay)
     if (!combineSigAndAlgorithm & length(algorithm) > 1) {
-      stop("SummarizedExperiment not supported with ",
-           "combineSigAndAlgorithm FALSE.")
+      stop("SummarizedExperiment not supported with combineSigAndAlgorithm FALSE.")
     }
   } else if (!is.null(useAssay)) {
     stop("useAssay only supported for SummarizedExperiment objects")
   }
-  if (class(runindata) == "data.frame") {
+  if (methods::is(runindata, "data.frame")) {
     runindata <- as.matrix(runindata)
   }
-  if (class(runindata) != "matrix") {
+  if (!methods::is(runindata, "matrix")) {
     stop("Invalid input data type. Accepted input formats are matrix, ",
          "data.frame, or SummarizedExperiment. Your input: ",
          as.character(class(input)))
@@ -192,6 +193,7 @@ runTBsigProfiler <- function(input, useAssay = NULL,
   }
   singscore_res <- NULL
   if ("singscore" %in% algorithm) {
+    message("Running singscore")
     singscore_res <- matrix(ncol = ncol(runindata),
                             nrow = length(signatures),
                             dimnames = list(names(signatures),
@@ -206,14 +208,14 @@ runTBsigProfiler <- function(input, useAssay = NULL,
   }
   assign_res <- NULL
   if ("ASSIGN" %in% algorithm) {
-    predir <- getwd()
     delete_intermediate <- FALSE
     if (is.null(assignDir)) {
       assignDir <- tempfile("assign")
       dir.create(assignDir)
       delete_intermediate <- TRUE
+    } else if (!dir.exists(assignDir)) {
+      dir.create(assignDir)
     }
-    setwd(assignDir)
     message("Running ASSIGN")
     for (i in names(signatures)) {
       message(i)
@@ -227,13 +229,12 @@ runTBsigProfiler <- function(input, useAssay = NULL,
           ASSIGN::assign.wrapper(testData = runindata, trainingLabel = NULL,
                                  geneList = currlist, adaptive_S = TRUE,
                                  iter = ASSIGNiter, burn_in = ASSIGNburnin,
-                                 outputDir = i)
+                                 outputDir = file.path(assignDir, i))
         } else {
           message("Result already exists. Delete to re-run.")
         }
       }
     }
-    setwd(predir)
     assign_res <- as.matrix(t(ASSIGN::gather_assign_results(assignDir)))
     if (nrow(assign_res) == 0){
       assign_res <- NULL
@@ -321,12 +322,10 @@ runTBsigProfiler <- function(input, useAssay = NULL,
     } else {
       if (!is.null(outputFormat)) {
         if (outputFormat == "SummarizedExperiment") {
-          stop("SummarizedExperiment not supported with",
-               " combineSigAndAlgorithm FALSE.")
+          stop("SummarizedExperiment not supported with combineSigAndAlgorithm FALSE.")
         }
       } else if (methods::is(input, "SummarizedExperiment")) {
-        stop("SummarizedExperiment not supported with ",
-             "combineSigAndAlgorithm FALSE.")
+        stop("SummarizedExperiment not supported with combineSigAndAlgorithm FALSE.")
       }
       if (!is.null(gsvaRes)) {
         alg_col <- gsvaRes[, 1, drop = FALSE]
@@ -424,20 +423,18 @@ runTBsigProfiler <- function(input, useAssay = NULL,
   }
   if (is.null(outputFormat)) {
     #output same as input
-    if (class(input) %in% c("SummarizedExperiment", "SingleCellExperiment",
+    if (class(input)[1] %in% c("SummarizedExperiment", "SingleCellExperiment",
                             "SCtkExperiment")) {
       SummarizedExperiment::colData(input) <-
         S4Vectors::cbind(SummarizedExperiment::colData(input),
                          S4Vectors::DataFrame(t(sig_result)))
       return(input)
-    } else if (class(input) == "matrix") {
+    } else if (methods::is(input, "matrix")) {
       return(sig_result)
-    } else if (class(input) == "data.frame") {
+    } else if (methods::is(input, "data.frame")) {
       dfres <- data.frame(sig_result)
       colnames(dfres) <- colnames(sig_result)
       return(dfres)
-    } else {
-      stop("Output format error.")
     }
   } else if (outputFormat == "matrix") {
     return(sig_result)
@@ -446,6 +443,7 @@ runTBsigProfiler <- function(input, useAssay = NULL,
     colnames(dfres) <- colnames(sig_result)
     return(dfres)
   } else if (outputFormat == "SummarizedExperiment") {
+    attr(rownames(runindata), ".match.hash") <- NULL
     outdata <- SummarizedExperiment::SummarizedExperiment(
       assays = S4Vectors::SimpleList(data = runindata),
       colData = S4Vectors::DataFrame(t(sig_result)))
@@ -459,13 +457,16 @@ runTBsigProfiler <- function(input, useAssay = NULL,
 #'
 #' It may be useful to compare the results of scoring across several different
 #' scoring algorithms via a method of visualization, such as a heatmap. The
-#' \code{compareSigs} function allows the input of a data object and conducts
+#' \code{compareSigs} function allows the input of a SummarizedExperiment
+#' data object and conducts
 #' profiling on each signature desired, and outputting a heatmap or boxplot
 #' for each signature.
 #'
 #' @inheritParams runTBsigProfiler
 #' @inheritParams signatureHeatmap
 #' @inheritParams compareBoxplots
+#' @param input an input data object of the class \code{"SummarizedExperiment"}.
+#' Required.
 #' @param show.pb logical, whether warnings and other output
 #' from the profiling should be suppressed (including progress bar output).
 #' Default is \code{FALSE}.
@@ -488,7 +489,7 @@ runTBsigProfiler <- function(input, useAssay = NULL,
 #'             scale = TRUE, parallel.sz = 1, output = "heatmap")
 #'
 compareAlgs <- function (input, signatures = NULL, annotationColName,
-                         annotationData, useAssay = "counts",
+                         useAssay = "counts",
                          algorithm = c("GSVA", "ssGSEA", "ASSIGN", "PLAGE",
                                        "Zscore", "singscore"),
                          showColumnNames = TRUE,
@@ -499,7 +500,7 @@ compareAlgs <- function (input, signatures = NULL, annotationColName,
                          choose_color = c("blue", "gray95", "red"),
                          colList = list(),
                          show.pb = FALSE, parallel.sz = 0, output = "heatmap",
-                         num.boot = 100) {
+                         num.boot = 100, column_order = NULL) {
   if (output != "heatmap" & output != "boxplot") {
     stop("Output parameter must specify either 'heatmap' or 'boxplot'")
   }
@@ -519,11 +520,11 @@ compareAlgs <- function (input, signatures = NULL, annotationColName,
     new.name <- paste("Scoring Methods for", sig)
     if (!show.pb) {
       utils::capture.output(scored <- runTBsigProfiler(input,
-                                 useAssay = useAssay,
-                                 combineSigAndAlgorithm = TRUE,
-                                 signatures = signatures[sig],
-                                 algorithm = algorithm,
-                                 parallel.sz = parallel.sz))
+                                                       useAssay = useAssay,
+                                                       combineSigAndAlgorithm = TRUE,
+                                                       signatures = signatures[sig],
+                                                       algorithm = algorithm,
+                                                       parallel.sz = parallel.sz))
     } else if (show.pb) {
       scored <- runTBsigProfiler(input, useAssay = useAssay,
                                  combineSigAndAlgorithm = TRUE,
@@ -532,24 +533,24 @@ compareAlgs <- function (input, signatures = NULL, annotationColName,
                                  parallel.sz = parallel.sz)
     }
 
-    if (class(input) == "SummarizedExperiment") {
+    if (methods::is(input, "SummarizedExperiment")) {
       already.there <- names(SummarizedExperiment::colData(input))
       col.names <- subset(names(SummarizedExperiment::colData(scored)),
                           !(names(SummarizedExperiment::colData(scored))
                             %in% already.there))
-    } else col.names <- colnames(scored)
+    } else stop("Input must be a SummarizedExperiment object.")
 
     if (output == "heatmap") {
       return(signatureHeatmap(scored,
                               name = new.name,
-                              annotationData = annotationData,
                               signatureColNames = col.names,
                               annotationColNames = annotationColName,
                               scale = scale,
                               showColumnNames = showColumnNames,
                               showRowNames = showRowNames,
                               colorSets = colorSets, choose_color = choose_color,
-                              colList = colList, split_heatmap = "none"))
+                              colList = colList, split_heatmap = "none",
+                              column_order = column_order))
     } else if (output == "boxplot") {
       return(compareBoxplots(scored,
                              annotationColName = annotationColName,
@@ -559,4 +560,3 @@ compareAlgs <- function (input, signatures = NULL, annotationColName,
     }
   }
 }
-

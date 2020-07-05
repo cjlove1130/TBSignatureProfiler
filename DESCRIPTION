@@ -1,11 +1,11 @@
 Package: TBSignatureProfiler
-Title: Profile RNA-Seq Data Using TB Pathway Signatures
-Version: 0.0.0.9005
+Title: Profile RA-Seq Data Using TB Pathway Signatures
+Version: 1.1.01
 Authors@R:
     c(person(given = "David", family = "Jenkins", role = c("aut", "cre"), email = "dfj@bu.edu"),
       person(given = "Yue", family = "Zhao", role = c("aut"), email = "yuezh@bu.edu"),
       person(given = c("W. Evan"), family = "Johnson", role = c("aut"), email = "wej@bu.edu"),
-      person(given = c("Aubrey"), family = "Odom", role = c("aut"), email = "aubreyodom@byu.edu"),
+      person(given = c("Aubrey"), family = "Odom", role = c("aut"), email = "aodom@bu.edu"),
       person(given = c("Christian"), family = "Love", role = c("aut"), email = "clove@bu.edu"))
 Description: Signatures of TB progression, TB disease, and other TB disease
     states have been created. This package makes it easy to profile RNA-Seq data
@@ -15,31 +15,27 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 biocViews: GeneExpression, DifferentialExpression
 LazyData: true
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.0
+Depends:
+    R (>= 4.0.0)
 Imports:
-    ASSIGN,
+    ASSIGN (>= 1.23.1),
     GSVA,
-    SummarizedExperiment,
-    S4Vectors,
+    singscore,
     methods,
     BiocParallel,
     ComplexHeatmap,
     RColorBrewer,
     ggplot2,
+    S4Vectors,
     reshape2,
-    circlize,
-    glmnet,
     ROCit,
-    bioDist,
-    readr,
-    boot,
     DESeq2,
-    caret,
-    ggfortify,
-    e1071,
     DT,
     edgeR,
-    singscore
+    gdata,
+    magick,
+    SummarizedExperiment
 Suggests:
     testthat,
     spelling,
@@ -47,10 +43,13 @@ Suggests:
     covr,
     knitr,
     rmarkdown,
-    BiocStyle
+    BiocStyle,
+    shiny,
+    circlize,
+    glmnet,
+    caret,
+    e1071
 URL: https://github.com/compbiomed/TBSignatureProfiler
 BugReports: https://github.com/compbiomed/TBSignatureProfiler/issues
 Language: en-US
-Depends:
-    R (>= 3.6)
 VignetteBuilder: knitr

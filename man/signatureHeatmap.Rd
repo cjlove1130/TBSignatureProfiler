@@ -4,12 +4,24 @@
 \alias{signatureHeatmap}
 \title{Plot a heatmap of signature scores.}
 \usage{
-signatureHeatmap(inputData, annotationData = NULL, name = "Signatures",
-  signatureColNames, annotationColNames = NULL, colList = list(),
-  scale = FALSE, showColumnNames = TRUE, showRowNames = TRUE,
-  colorSets = c("Set1", "Set2", "Set3", "Pastel1", "Pastel2", "Accent",
-  "Dark2", "Paired"), choose_color = c("blue", "gray95", "red"),
-  split_heatmap = "disease", annotationSignature = sigAnnotData, ...)
+signatureHeatmap(
+  inputData,
+  annotationData = NULL,
+  name = "Signatures",
+  signatureColNames,
+  annotationColNames = NULL,
+  colList = list(),
+  scale = FALSE,
+  showColumnNames = TRUE,
+  showRowNames = TRUE,
+  colorSets = c("Set1", "Set2", "Set3", "Pastel1", "Pastel2", "Accent", "Dark2",
+    "Paired"),
+  choose_color = c("blue", "gray95", "red"),
+  split_heatmap = "none",
+  annotationSignature = sigAnnotData,
+  column_order = NULL,
+  ...
+)
 }
 \arguments{
 \item{inputData}{an input data object. It should either be of the class
@@ -20,7 +32,9 @@ Required.}
 
 \item{annotationData}{a \code{data.frame} or \code{matrix} of annotation
 data, with one column. Only required if \code{inputData} is a
-\code{data.frame} or \code{matrix} of signature data. Default is \code{NULL}.}
+\code{data.frame} or \code{matrix} of signature data.
+The row names must equal those of the \code{inputData} column names.
+Default is \code{NULL}.}
 
 \item{name}{a character string with the plot title of the heatmap. The
 default is \code{"Signatures"}.}
@@ -70,13 +84,18 @@ heatmap gradient, or a \code{colorRamp} function produced by
 \item{split_heatmap}{a character string either giving the column title of
 \code{annotationSignature} containing annotation data for which to split
 the heatmap rows (i.e., signatures), or \code{"none"} if no split is desired.
-The default is \code{"disease"}.}
+To split based on the type of signature, set \code{split_heatmap = "disease"}.
+The default is \code{"none"}.}
 
 \item{annotationSignature}{a \code{data.frame} or \code{matrix} with information
 to be used
 in splitting the heatmap. The first column should signature names. The
 column of annotation information should be specified in \code{split_heatmap.}
 Other columns will be ignored. The default is \code{sigAnnotData}.}
+
+\item{column_order}{a vector of character strings indicating the order in
+which to manually arrange the heatmap columns. Default is \code{NULL},
+such that column order is automatically determined via clustering.}
 
 \item{...}{Additional arguments to be passed to
 \code{ComplexHeatmap::Heatmap()}.}
@@ -86,8 +105,9 @@ A ComplexHeatmap plot.
 }
 \description{
 This function takes a dataset of scored gene expression data as an input
-and returns a ComplexHeatmap plot for for visual comparison of
-signature performance.
+and returns a \code{ComplexHeatmap} plot for for visual comparison of
+signature performance. The function takes arguments listed here as well
+as any others to be passed on to \code{ComplexHeatmap::Heatmap()}.
 }
 \details{
 If both \code{annotationData = NULL} and \code{annotationColNames = NULL},
@@ -98,10 +118,10 @@ library(SummarizedExperiment)
 # Generate some artificial data that shows a difference in Zak_RISK_16
 mat_testdata <- rbind(matrix(c(rnorm(80), rnorm(80) + 5), 16, 10,
                              dimnames = list(TBsignatures$Zak_RISK_16,
-                                             paste0("sample", 1:10))),
+                                             paste0("sample", seq_len(10)))),
                       matrix(rnorm(1000), 100, 10,
-                             dimnames = list(paste0("gene", 1:100),
-                                             paste0("sample", 1:10))))
+                             dimnames = list(paste0("gene", seq_len(100)),
+                                             paste0("sample", seq_len(10)))))
 # Create a SummarizedExperiment object that contains the data
 testdataSE <- SummarizedExperiment(assays = SimpleList(data = mat_testdata),
                                      colData = DataFrame(sample =

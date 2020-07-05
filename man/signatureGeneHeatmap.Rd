@@ -4,11 +4,23 @@
 \alias{signatureGeneHeatmap}
 \title{Plot a heatmap of a single signature score with individual gene expression levels.}
 \usage{
-signatureGeneHeatmap(inputData, useAssay, sigGenes, name = "Signature",
-  signatureColNames = NULL, annotationColNames = NULL, scale = TRUE,
-  showColumnNames = TRUE, showRowNames = TRUE, colList = list(),
-  colorSets = c("Set1", "Set2", "Set3", "Pastel1", "Pastel2", "Accent",
-  "Dark2", "Paired"), choose_color = c("blue", "gray95", "red"), ...)
+signatureGeneHeatmap(
+  inputData,
+  useAssay,
+  sigGenes,
+  name = "Signature",
+  signatureColNames = NULL,
+  annotationColNames = NULL,
+  scale = TRUE,
+  showColumnNames = TRUE,
+  showRowNames = TRUE,
+  colList = list(),
+  colorSets = c("Set1", "Set2", "Set3", "Pastel1", "Pastel2", "Accent", "Dark2",
+    "Paired"),
+  choose_color = c("blue", "gray95", "red"),
+  column_order = NULL,
+  ...
+)
 }
 \arguments{
 \item{inputData}{a \code{SummarizedExperiment} object containing the profiled
@@ -67,7 +79,12 @@ in order that you want to use them, or provide custom color sets with the
 heatmap gradient, or a \code{colorRamp} function produced by
 \code{circlize::colorRamp2}. The default is \code{c("blue", "gray95", "red")}.}
 
-\item{...}{Additional parameters to pass to \code{ComplexHeatmap::Heatmap()}.}
+\item{column_order}{a vector of character strings indicating the order in
+which to manually arrange the heatmap columns. Default is \code{NULL},
+such that column order is automatically determined via clustering.}
+
+\item{...}{Additional arguments to be passed to
+\code{ComplexHeatmap::Heatmap()}.}
 }
 \value{
 A \code{ComplexHeatmap} plot.
@@ -81,10 +98,10 @@ library(SummarizedExperiment)
 # Generate some artificial data that shows a difference in Zak_RISK_16
 mat_testdata <- rbind(matrix(c(rnorm(80), rnorm(80) + 5), 16, 10,
                              dimnames = list(TBsignatures$Zak_RISK_16,
-                                             paste0("sample", 1:10))),
+                                             paste0("sample", seq_len(10)))),
                       matrix(rnorm(1000), 100, 10,
-                             dimnames = list(paste0("gene", 1:100),
-                                             paste0("sample", 1:10))))
+                             dimnames = list(paste0("gene", seq_len(100)),
+                                             paste0("sample", seq_len(10)))))
 
 # Create a SummarizedExperiment object that contains the data
 testdataSE <- SummarizedExperiment(assays = SimpleList(data = mat_testdata),

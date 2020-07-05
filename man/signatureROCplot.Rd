@@ -4,9 +4,17 @@
 \alias{signatureROCplot}
 \title{Create an array of ROC plots to compare signatures.}
 \usage{
-signatureROCplot(inputData, annotationData, signatureColNames,
-  annotationColName, scale = FALSE, choose_colors = c("cornflowerblue",
-  "gray24"), name = "Signatures", nrow = NULL, ncol = NULL)
+signatureROCplot(
+  inputData,
+  annotationData,
+  signatureColNames,
+  annotationColName,
+  scale = FALSE,
+  choose_colors = c("cornflowerblue", "gray24"),
+  name = "Signatures",
+  nrow = NULL,
+  ncol = NULL
+)
 }
 \arguments{
 \item{inputData}{an input data object. It should either be of the class
@@ -19,9 +27,10 @@ expression data. Required.}
 with one column. Only required if \code{inputData} is a \code{data.frame} or
 \code{matrix} of signature data.}
 
-\item{signatureColNames}{a \code{vector} of the column names in \code{colData}
-that contain the signature data. Only required if \code{inputData} is a
-\code{SummarizedExperiment} object.}
+\item{signatureColNames}{a \code{vector} of the column names of \code{inputData}
+that contain the signature data. If \code{inputData} is a
+\code{SummarizedExperiment} object, these are the column names of the
+object \code{colData}.}
 
 \item{annotationColName}{a character string naming the column name in the
 \code{colData} that contains the annotation data to be used in making the
@@ -30,7 +39,7 @@ boxplot. Only required if inputData is a \code{SummarizedExperiment} object.}
 \item{scale}{logical. Setting \code{scale = TRUE} scales the signature data.
 The default is \code{FALSE}.}
 
-\item{choose_colors}{a vector of length 2 defining the colors to be used
+\item{choose_colors}{a \code{vector} of length 2 defining the colors to be used
 in the ROC plots. The default is \code{c("cornflowerblue", "gray24")}.}
 
 \item{name}{a character string giving the title of the boxplot. The default
@@ -49,7 +58,7 @@ Create an array of ROC plots to compare signatures.
 \examples{
 # Run signature profiling
  choose_sigs <- subset(TBsignatures,
-                       !(names(TBsignatures) \%in\% c("Lee_4", "Roe_OD_4")))[1:6]
+                       !(names(TBsignatures) \%in\% c("Lee_4", "Roe_OD_4")))[c(1,2)]
  prof_indian <- runTBsigProfiler(TB_indian, useAssay = "logcounts",
                                  algorithm = "ssGSEA",
                                  signatures = choose_sigs,

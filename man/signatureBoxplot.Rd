@@ -4,10 +4,21 @@
 \alias{signatureBoxplot}
 \title{Plot a boxplot of signature genes.}
 \usage{
-signatureBoxplot(inputData, annotationData, signatureColNames,
-  annotationColName, name = "Signatures", scale = FALSE,
-  includePoints = TRUE, notch = FALSE, rotateLabels = FALSE,
-  nrow = NULL, ncol = NULL, fill_colors = c("#E41A1C", "#377EB8"))
+signatureBoxplot(
+  inputData,
+  annotationData,
+  signatureColNames,
+  annotationColName,
+  name = "Signatures",
+  scale = FALSE,
+  violinPlot = FALSE,
+  includePoints = TRUE,
+  notch = FALSE,
+  rotateLabels = FALSE,
+  nrow = NULL,
+  ncol = NULL,
+  fill_colors = NULL
+)
 }
 \arguments{
 \item{inputData}{an input data object. It should either be of the class
@@ -34,6 +45,9 @@ is \code{"Signatures"}.}
 \item{scale}{logical. Setting \code{scale = TRUE} scales the signature data.
 The default is \code{FALSE}.}
 
+\item{violinPlot}{logical. Setting \code{violinPlot = TRUE} creates violin
+plots in place of boxplots. The default is \code{FALSE}.}
+
 \item{includePoints}{logical. If \code{TRUE}, points will be included over
 the boxplots. The default is \code{TRUE}.}
 
@@ -50,7 +64,8 @@ rotated. The default is \code{FALSE}.}
 \item{ncol}{integer giving the number of columns in the resulting array.}
 
 \item{fill_colors}{a vector of color names to be used as the fill colors for
-the boxplot. The default is \code{fill_colors = c("#E41A1C", "#377EB8").}}
+the boxplot. If \code{NULL}, colors will be supplied via RColorBrewer.
+The default is \code{fill_colors = NULL}.}
 }
 \value{
 A \code{ggplot2} boxplot of the signature data using the provided
@@ -65,10 +80,10 @@ library(SummarizedExperiment)
 # Generate some artificial data that shows a difference in Zak_RISK_16
 mat_testdata <- rbind(matrix(c(rnorm(80), rnorm(80) + 5), 16, 10,
                              dimnames = list(TBsignatures$Zak_RISK_16,
-                                             paste0("sample", 1:10))),
+                                             paste0("sample", seq_len(10)))),
                       matrix(rnorm(1000), 100, 10,
-                             dimnames = list(paste0("gene", 1:100),
-                                             paste0("sample", 1:10))))
+                             dimnames = list(paste0("gene", seq_len(100)),
+                                             paste0("sample", seq_len(10)))))
 
 # Create a SummarizedExperiment object that contains the data
 testdataSE <- SummarizedExperiment(assays = SimpleList(data = mat_testdata),
@@ -84,4 +99,5 @@ res <- runTBsigProfiler(testdataSE, useAssay = "data",
 signatureBoxplot(res, signatureColNames = c("GSVA_Zak_RISK_16",
                                             "ssGSEA_Zak_RISK_16"),
                  annotationColName = "sample", name = "Zak_RISK_16 Signature")
+
 }

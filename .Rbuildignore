@@ -1,2 +1,13 @@
+^doc$
+^docs$
+^pkgdown$
+vignettes/rmd
+^index.md$
+^\.git$
+^Meta$
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^\.travis\.yml$
+^codecov\.yml$
+^LICENSE.md$
+^CODE_OF_CONDUCT.md$

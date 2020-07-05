@@ -4,10 +4,19 @@
 \alias{signatureROCplot_CI}
 \title{Create an array of ROC plots with confidence interval bands to compare signatures.}
 \usage{
-signatureROCplot_CI(inputData, annotationData, signatureColNames,
-  annotationColName, scale = FALSE, choose_colors = c("cornflowerblue",
-  "gray50", "gray79"), name = NULL, nrow = NULL, ncol = NULL,
-  ci.lev = 0.95, pb.show = TRUE)
+signatureROCplot_CI(
+  inputData,
+  annotationData,
+  signatureColNames,
+  annotationColName,
+  scale = FALSE,
+  choose_colors = c("cornflowerblue", "gray50", "gray79"),
+  name = NULL,
+  nrow = NULL,
+  ncol = NULL,
+  ci.lev = 0.95,
+  pb.show = TRUE
+)
 }
 \arguments{
 \item{inputData}{an input data object. It should either be of the class
@@ -20,9 +29,10 @@ expression data. Required.}
 with one column. Only required if \code{inputData} is a \code{data.frame} or
 \code{matrix} of signature data.}
 
-\item{signatureColNames}{a \code{vector} of the column names in \code{colData}
-that contain the signature data. Only required if \code{inputData} is a
-\code{SummarizedExperiment} object.}
+\item{signatureColNames}{a \code{vector} of the column names of \code{inputData}
+that contain the signature data. If \code{inputData} is a
+\code{SummarizedExperiment} object, these are the column names of the
+object \code{colData}.}
 
 \item{annotationColName}{a character string naming the column name in the
 \code{colData} that contains the annotation data to be used in making the
@@ -35,7 +45,7 @@ The default is \code{FALSE}.}
 in the ROC plots. The default is \code{c("cornflowerblue",
 "gray50", "gray79")}.}
 
-\item{name}{a character string giving the title of the boxplot. If
+\item{name}{a character string giving the title of the ROC plot. If
 \code{NULL}, the plot title will be
 \code{"ROC Plots for Gene Signatures, <ci.lev>\% Confidence"}.
 The default is \code{NULL}.}
@@ -59,7 +69,7 @@ Create an array of ROC plots with confidence interval bands to compare signature
 \examples{
 # Run signature profiling
 
- choose_sigs <- TBsignatures[1:2]
+ choose_sigs <- TBsignatures[c(1, 2)]
  prof_indian <- runTBsigProfiler(TB_indian, useAssay = "logcounts",
                                  algorithm = "Zscore",
                                  signatures = choose_sigs,

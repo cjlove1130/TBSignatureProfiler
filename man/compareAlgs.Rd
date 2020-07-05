@@ -4,18 +4,29 @@
 \alias{compareAlgs}
 \title{Compare scoring algorithms on a single signature via heatmap or boxplot.}
 \usage{
-compareAlgs(input, signatures = NULL, annotationColName, annotationData,
-  useAssay = "counts", algorithm = c("GSVA", "ssGSEA", "ASSIGN",
-  "PLAGE", "Zscore", "singscore"), showColumnNames = TRUE,
-  showRowNames = TRUE, scale = FALSE, colorSets = c("Set1", "Set2",
-  "Set3", "Pastel1", "Pastel2", "Accent", "Dark2", "Paired"),
-  choose_color = c("blue", "gray95", "red"), colList = list(),
-  show.pb = FALSE, parallel.sz = 0, output = "heatmap",
-  num.boot = 100)
+compareAlgs(
+  input,
+  signatures = NULL,
+  annotationColName,
+  useAssay = "counts",
+  algorithm = c("GSVA", "ssGSEA", "ASSIGN", "PLAGE", "Zscore", "singscore"),
+  showColumnNames = TRUE,
+  showRowNames = TRUE,
+  scale = FALSE,
+  colorSets = c("Set1", "Set2", "Set3", "Pastel1", "Pastel2", "Accent", "Dark2",
+    "Paired"),
+  choose_color = c("blue", "gray95", "red"),
+  colList = list(),
+  show.pb = FALSE,
+  parallel.sz = 0,
+  output = "heatmap",
+  num.boot = 100,
+  column_order = NULL
+)
 }
 \arguments{
-\item{input}{an input data object of the class \code{SummarizedExperiment},
-\code{data.frame}, or \code{matrix} containing gene expression data. Required.}
+\item{input}{an input data object of the class \code{"SummarizedExperiment"}.
+Required.}
 
 \item{signatures}{a \code{list} of signatures to run with their associated genes.
 This list should be in the same format as \code{TBsignatures}, included in
@@ -25,10 +36,6 @@ of signatures \code{TBsignatures} list is used. For details, run
 
 \item{annotationColName}{a character string giving the column name in
 \code{colData} that contains the annotation data. Required.}
-
-\item{annotationData}{a \code{data.frame} or \code{matrix} of annotation
-data, with one column. Only required if \code{inputData} is a
-\code{data.frame} or \code{matrix} of signature data. Default is \code{NULL}.}
 
 \item{useAssay}{a character string specifying the assay to use for signature
 profiling when \code{input} is a \code{SummarizedExperiment}. Required only for
@@ -87,6 +94,10 @@ should be a \code{"heatmap"} or \code{"boxplot"}. The default is
 
 \item{num.boot}{an integer indicating the number of times to bootstrap the
 data.}
+
+\item{column_order}{a vector of character strings indicating the order in
+which to manually arrange the heatmap columns. Default is \code{NULL},
+such that column order is automatically determined via clustering.}
 }
 \value{
 A heatmap or boxplot for each signature specified comparing
@@ -95,7 +106,8 @@ the enumerated algorithms.
 \description{
 It may be useful to compare the results of scoring across several different
 scoring algorithms via a method of visualization, such as a heatmap. The
-\code{compareSigs} function allows the input of a data object and conducts
+\code{compareSigs} function allows the input of a SummarizedExperiment
+data object and conducts
 profiling on each signature desired, and outputting a heatmap or boxplot
 for each signature.
 }

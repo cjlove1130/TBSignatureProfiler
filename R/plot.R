@@ -1,8 +1,12 @@
+globalVariables(c("BS_AUC", "FPR", "LowerTPR", "Signatures",
+                  "TBsignatures", "TPR", "UpperTPR", "sigAnnotData"))
+
 #' Plot a heatmap of signature scores.
 #'
 #' This function takes a dataset of scored gene expression data as an input
-#' and returns a ComplexHeatmap plot for for visual comparison of
-#' signature performance.
+#' and returns a \code{ComplexHeatmap} plot for for visual comparison of
+#' signature performance. The function takes arguments listed here as well
+#' as any others to be passed on to \code{ComplexHeatmap::Heatmap()}.
 #'
 #' If both \code{annotationData = NULL} and \code{annotationColNames = NULL},
 #' no annotation bar will be drawn on the heatmap.
@@ -14,7 +18,9 @@
 #' Required.
 #' @param annotationData a \code{data.frame} or \code{matrix} of annotation
 #' data, with one column. Only required if \code{inputData} is a
-#' \code{data.frame} or \code{matrix} of signature data. Default is \code{NULL}.
+#' \code{data.frame} or \code{matrix} of signature data.
+#' The row names must equal those of the \code{inputData} column names.
+#' Default is \code{NULL}.
 #' @param name a character string with the plot title of the heatmap. The
 #' default is \code{"Signatures"}.
 #' @param signatureColNames a vector of the column names in \code{colData} that
@@ -54,12 +60,16 @@
 #' @param split_heatmap a character string either giving the column title of
 #' \code{annotationSignature} containing annotation data for which to split
 #' the heatmap rows (i.e., signatures), or \code{"none"} if no split is desired.
-#' The default is \code{"disease"}.
+#' To split based on the type of signature, set \code{split_heatmap = "disease"}.
+#' The default is \code{"none"}.
 #' @param annotationSignature a \code{data.frame} or \code{matrix} with information
 #' to be used
 #' in splitting the heatmap. The first column should signature names. The
 #' column of annotation information should be specified in \code{split_heatmap.}
 #' Other columns will be ignored. The default is \code{sigAnnotData}.
+#' @param column_order a vector of character strings indicating the order in
+#' which to manually arrange the heatmap columns. Default is \code{NULL},
+#' such that column order is automatically determined via clustering.
 #' @param ... Additional arguments to be passed to
 #' \code{ComplexHeatmap::Heatmap()}.
 #'
@@ -72,10 +82,10 @@
 #' # Generate some artificial data that shows a difference in Zak_RISK_16
 #' mat_testdata <- rbind(matrix(c(rnorm(80), rnorm(80) + 5), 16, 10,
 #'                              dimnames = list(TBsignatures$Zak_RISK_16,
-#'                                              paste0("sample", 1:10))),
+#'                                              paste0("sample", seq_len(10)))),
 #'                       matrix(rnorm(1000), 100, 10,
-#'                              dimnames = list(paste0("gene", 1:100),
-#'                                              paste0("sample", 1:10))))
+#'                              dimnames = list(paste0("gene", seq_len(100)),
+#'                                              paste0("sample", seq_len(10)))))
 #' # Create a SummarizedExperiment object that contains the data
 #' testdataSE <- SummarizedExperiment(assays = SimpleList(data = mat_testdata),
 #'                                      colData = DataFrame(sample =
@@ -101,15 +111,17 @@
 #'                  colList = color.list, split_heatmap = "none")
 #'
 signatureHeatmap <- function(inputData, annotationData = NULL, name = "Signatures",
-                             signatureColNames, annotationColNames = NULL,
+                             signatureColNames,
+                             annotationColNames = NULL,
                              colList = list(), scale = FALSE,
                              showColumnNames = TRUE,
                              showRowNames = TRUE, colorSets = c("Set1", "Set2",
                                                                 "Set3", "Pastel1", "Pastel2", "Accent", "Dark2",
                                                                 "Paired"),
                              choose_color = c("blue", "gray95", "red"),
-                             split_heatmap = "disease",
+                             split_heatmap = "none",
                              annotationSignature = sigAnnotData,
+                             column_order = NULL,
                              ...) {
   if (methods::is(inputData, "SummarizedExperiment")){
     if (any(duplicated(signatureColNames))){
@@ -126,7 +138,9 @@ signatureHeatmap <- function(inputData, annotationData = NULL, name = "Signature
       inputData <- SummarizedExperiment::colData(inputData)[, signatureColNames, drop = FALSE]
     }
   } else {
-    if (!is.null(annotationData)) {
+    if (is.null(annotationData)) {
+      stop("annotationData must be provided for a data.frame input object.")
+    } else if (!is.null(annotationData)) {
       annotationColNames <- colnames(annotationData)
     }
   }
@@ -165,15 +179,7 @@ signatureHeatmap <- function(inputData, annotationData = NULL, name = "Signature
   } else {
     row_split_pass <- ann_data[, split_heatmap]
   }
-  # If there is no annotationData to draw on the heatmap
-  if (is.null(annotationData)) {
-    return(ComplexHeatmap::Heatmap(sigresults, column_title = name,
-                                   show_column_names = showColumnNames,
-                                   col = choose_color,
-                                   show_row_names = showRowNames,
-                                   name = keyname,
-                                   row_split = row_split_pass, ...))
-  } else {
+  if (!is.null(annotationData)) {
     if (length(colList) == 0){
       colorSetNum <- 1
       for (annot in annotationColNames){
@@ -209,7 +215,9 @@ signatureHeatmap <- function(inputData, annotationData = NULL, name = "Signature
                               col = choose_color,
                               show_row_names = showRowNames,
                               top_annotation = topha2, name = keyname,
-                              row_split = row_split_pass, ...),
+                              row_split = row_split_pass,
+                              column_order = column_order,
+                              ...),
       annotation_legend_side = "bottom"))
   }
 }
@@ -234,6 +242,8 @@ signatureHeatmap <- function(inputData, annotationData = NULL, name = "Signature
 #' is \code{"Signatures"}.
 #' @param scale logical. Setting \code{scale = TRUE} scales the signature data.
 #' The default is \code{FALSE}.
+#' @param violinPlot logical. Setting \code{violinPlot = TRUE} creates violin
+#' plots in place of boxplots. The default is \code{FALSE}.
 #' @param includePoints logical. If \code{TRUE}, points will be included over
 #' the boxplots. The default is \code{TRUE}.
 #' @param notch logical. Notches are used to compare groups; if the notches of
@@ -245,7 +255,8 @@ signatureHeatmap <- function(inputData, annotationData = NULL, name = "Signature
 #' @param nrow integer giving the number of rows in the resulting array.
 #' @param ncol integer giving the number of columns in the resulting array.
 #' @param fill_colors a vector of color names to be used as the fill colors for
-#' the boxplot. The default is \code{fill_colors = c("#E41A1C", "#377EB8").}
+#' the boxplot. If \code{NULL}, colors will be supplied via RColorBrewer.
+#' The default is \code{fill_colors = NULL}.
 #'
 #' @return A \code{ggplot2} boxplot of the signature data using the provided
 #' annotation information.
@@ -258,10 +269,10 @@ signatureHeatmap <- function(inputData, annotationData = NULL, name = "Signature
 #' # Generate some artificial data that shows a difference in Zak_RISK_16
 #' mat_testdata <- rbind(matrix(c(rnorm(80), rnorm(80) + 5), 16, 10,
 #'                              dimnames = list(TBsignatures$Zak_RISK_16,
-#'                                              paste0("sample", 1:10))),
+#'                                              paste0("sample", seq_len(10)))),
 #'                       matrix(rnorm(1000), 100, 10,
-#'                              dimnames = list(paste0("gene", 1:100),
-#'                                              paste0("sample", 1:10))))
+#'                              dimnames = list(paste0("gene", seq_len(100)),
+#'                                              paste0("sample", seq_len(10)))))
 #'
 #' # Create a SummarizedExperiment object that contains the data
 #' testdataSE <- SummarizedExperiment(assays = SimpleList(data = mat_testdata),
@@ -277,11 +288,13 @@ signatureHeatmap <- function(inputData, annotationData = NULL, name = "Signature
 #' signatureBoxplot(res, signatureColNames = c("GSVA_Zak_RISK_16",
 #'                                             "ssGSEA_Zak_RISK_16"),
 #'                  annotationColName = "sample", name = "Zak_RISK_16 Signature")
+#'
 signatureBoxplot <- function(inputData, annotationData, signatureColNames,
                              annotationColName, name = "Signatures",
-                             scale = FALSE, includePoints = TRUE,
+                             scale = FALSE, violinPlot = FALSE,
+                             includePoints = TRUE,
                              notch = FALSE, rotateLabels = FALSE, nrow = NULL,
-                             ncol = NULL, fill_colors = c("#E41A1C", "#377EB8")) {
+                             ncol = NULL, fill_colors = NULL) {
   if (methods::is(inputData, "SummarizedExperiment")){
     if (any(duplicated(signatureColNames))){
       stop("Duplicate signature column name is not supported.")
@@ -310,7 +323,8 @@ signatureBoxplot <- function(inputData, annotationData, signatureColNames,
   if (!is.factor(annotationData[, 1])) {
     annotationData[, 1] <- as.factor(annotationData[, 1])
   }
-  if (length(levels(annotationData[, 1])) > 9){
+  n <- length(levels(annotationData[, 1]))
+  if (n > 9){
     stop("Too many levels in the annotation data. The boxplot can contain a maximum of 9 levels")
   }
   # if number of rows equal number of row names
@@ -338,11 +352,18 @@ signatureBoxplot <- function(inputData, annotationData, signatureColNames,
   theplot <- ggplot2::ggplot(boxplotdfm,
                              ggplot2::aes_string("Group", "Score")) +
     ggplot2::facet_wrap(~Signature, scales = 'free',
-                         nrow = nrow, ncol = ncol) +
-    ggplot2::geom_boxplot(outlier.shape = NA,
-                          ggplot2::aes_string(fill = "Group"),
-                          notch = notch) +
-    ggplot2::theme_classic()
+                         nrow = nrow, ncol = ncol)
+  if (violinPlot) {
+    theplot <- theplot + ggplot2::geom_violin(ggplot2::aes_string(
+                                                fill = "Group")) +
+      ggplot2::theme_classic()
+  } else {
+    theplot <- theplot + ggplot2::geom_boxplot(outlier.shape = NA,
+                                               ggplot2::aes_string(
+                                                 fill = "Group"),
+                                               notch = notch) +
+      ggplot2::theme_classic()
+  }
   if (includePoints) {
     theplot <- theplot + ggplot2::geom_point(position = ggplot2::
                                                position_jitter(width = 0.1))
@@ -350,6 +371,10 @@ signatureBoxplot <- function(inputData, annotationData, signatureColNames,
   if (rotateLabels) {
     theplot <- theplot + ggplot2::theme(axis.text.x = ggplot2::
                                           element_text(angle = 90, hjust = 1))
+  }
+  if (is.null(fill_colors)) {
+    if (n < 3) n <- 3
+    fill_colors <- RColorBrewer::brewer.pal(n, "Set1")
   }
   return(theplot +
     ggplot2::scale_fill_manual(values = fill_colors) +
@@ -397,7 +422,6 @@ signatureBoxplot <- function(inputData, annotationData, signatureColNames,
 #' if the annotation/gene is continuous.
 #' By default, \code{ColorBrewer} color sets will be used.
 #' See the the parameter \code{colorSets} for additional details.
-#' @param ... Additional parameters to pass to \code{ComplexHeatmap::Heatmap()}.
 #'
 #' @return  A \code{ComplexHeatmap} plot.
 #'
@@ -408,10 +432,10 @@ signatureBoxplot <- function(inputData, annotationData, signatureColNames,
 #' # Generate some artificial data that shows a difference in Zak_RISK_16
 #' mat_testdata <- rbind(matrix(c(rnorm(80), rnorm(80) + 5), 16, 10,
 #'                              dimnames = list(TBsignatures$Zak_RISK_16,
-#'                                              paste0("sample", 1:10))),
+#'                                              paste0("sample", seq_len(10)))),
 #'                       matrix(rnorm(1000), 100, 10,
-#'                              dimnames = list(paste0("gene", 1:100),
-#'                                              paste0("sample", 1:10))))
+#'                              dimnames = list(paste0("gene", seq_len(100)),
+#'                                              paste0("sample", seq_len(10)))))
 #'
 #' # Create a SummarizedExperiment object that contains the data
 #' testdataSE <- SummarizedExperiment(assays = SimpleList(data = mat_testdata),
@@ -439,6 +463,7 @@ signatureGeneHeatmap <- function(inputData, useAssay, sigGenes,
                                  "Set3", "Pastel1", "Pastel2", "Accent",
                                  "Dark2", "Paired"),
                                  choose_color = c("blue", "gray95", "red"),
+                                 column_order = NULL,
                                  ...) {
   if (!is.null(signatureColNames)) {
     pathwaycols <- list()
@@ -536,7 +561,8 @@ signatureGeneHeatmap <- function(inputData, useAssay, sigGenes,
       heatdata, show_column_names = showColumnNames,
       col = choose_color,
       show_row_names = showRowNames, top_annotation = topha,
-      name = heatname, column_title = name, ...),
+      name = heatname, column_title = name,
+      column_order = column_order, ...),
     annotation_legend_side = "bottom")
   )
 }
@@ -560,9 +586,11 @@ signatureGeneHeatmap <- function(inputData, useAssay, sigGenes,
 #'
 #' @return A vector of distinct colors that have been converted to HEX from
 #' HSV.
-#' 
-#' #' @examples
-#' library(SummarizedExperiment)
+#'
+#' @export
+#'
+#' @examples
+#'
 #' distinctColors(10)
 #'
 distinctColors <- function(n, hues = c("red", "cyan", "orange", "blue",
@@ -590,7 +618,7 @@ distinctColors <- function(n, hues = c("red", "cyan", "orange", "blue",
 
   ## Create all combinations of hues with saturation/value pairs
   new.hsv <- c()
-  for (i in 1:num.vs) {
+  for (i in seq_len(num.vs)) {
     temp <- rbind(hues.hsv[1, ], s[i], v[i])
     new.hsv <- cbind(new.hsv, temp)
   }
@@ -598,6 +626,6 @@ distinctColors <- function(n, hues = c("red", "cyan", "orange", "blue",
   ## Convert to HEX
   col <- grDevices::hsv(new.hsv[1, ], new.hsv[2, ], new.hsv[3, ])
 
-  return(col[1:n])
+  return(col[seq_len(n)])
 }
 
