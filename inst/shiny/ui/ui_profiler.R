@@ -15,6 +15,6 @@ tabPanel("Run TB Signature Profiler",
            tableOutput("assays"),
            h4("TBSignatureProfiler Data"),
            hr(),
-           DT::dataTableOutput("visdat", width = 700)
+           dataTableOutput("visdat", width = 700)
          )
 )
